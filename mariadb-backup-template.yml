@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: mariadb-backup-template
+  annotations:
+    description: 'Template for MariaDB container backup job'
+    tags: 'database'
+parameters:
+  - name: MARIADB_BACKUP_KEEP
+    description: 'Number of backups to keep'
+    value: '5'
+  - name: MARIADB_BACKUP_SCHEDULE
+    description: 'Cron-like schedule expression. Default: Every hour at :55'
+    value: '55 * * * *'
+  - name: MARIADB_BACKUP_VOLUME_CLAIM
+    description: 'Name of the volume claim to be used as storage'
+    value: 'mariadb-backup'
+  - name: MARIADB_ADMIN_PASSWORD
+    description: 'MariaDB admin user''s password. Required.'
+  - name: MARIADB_SERVICE_HOST
+    description: 'MariaDB Service Name. Required.'
+  - name: MARIADB_SERVICE_PORT
+    description: 'MariaDB Service PORT'
+    value: '3306'
+objects:
+  - apiVersion: batch/v2alpha1
+    kind: ScheduledJob
+    metadata:
+      name: mariadb-backup
+    spec:
+      schedule: ${MARIADB_BACKUP_SCHEDULE}
+      concurrencyPolicy: Forbid
+      jobTemplate:
+        spec:
+          template:
+            spec:
+              volumes:
+                - name: mariadb-backup
+                  persistentVolumeClaim:
+                    claimName: ${MARIADB_BACKUP_VOLUME_CLAIM}
+              containers:
+                - name: mariadb-backup
+                  image: 'registry.access.redhat.com/rhscl/mariadb-101-rhel7@sha256:06bbf195382e36a727f3488d8fe597cedf62ce1888104768b3e5eb106e683cd5'
+                  command:
+                    - 'bash'
+                    - '-c'
+                    - 'ls -rdt /mariadb-backup/backup-all-databases-* | head -n -5 | xargs rm -fr; mysqldump -uroot -p$MARIADB_ADMIN_PASSWORD -h$MARIADB_SERVICE_HOST -P$MARIADB_SERVICE_PORT --all-databases | gzip > /mariadb-backup/backup-all-databases-`date +%Y-%m-%d_%H%M%S`.sql.gz; echo "Backup finished"; echo "to restore the backup to the serviced host use: $ mysql -uroot -p$MARIADB_ADMIN_PASSWORD -h$MARIADB_SERVICE_HOST < mariadb-backup/backupfile (unzipped)"'
+                  env:
+                    - name: MARIADB_BACKUP_KEEP
+                      value: ${MARIADB_BACKUP_KEEP}
+                    - name: MARIADB_ADMIN_PASSWORD
+                      value: ${MARIADB_ADMIN_PASSWORD}
+                    - name: MARIADB_SERVICE_HOST
+                      value: ${MARIADB_SERVICE_HOST}
+                    - name: MARIADB_SERVICE_PORT
+                      value: ${MARIADB_SERVICE_PORT}
+                  volumeMounts:
+                    - name: mariadb-backup
+                      mountPath: /mariadb-backup
+              restartPolicy: Never

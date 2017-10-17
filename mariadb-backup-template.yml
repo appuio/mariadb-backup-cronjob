@@ -44,7 +44,7 @@ objects:
                   command:
                     - 'bash'
                     - '-c'
-                    - 'ls -rdt /mariadb-backup/backup-all-databases-* | head -n -5 | xargs rm -fr; mysqldump -uroot -p$MARIADB_ADMIN_PASSWORD -h$MARIADB_SERVICE_HOST -P$MARIADB_SERVICE_PORT --all-databases | gzip > /mariadb-backup/backup-all-databases-`date +%Y-%m-%d_%H%M%S`.sql.gz; echo "Backup finished"; echo "to restore the backup to the serviced host use: $ mysql -uroot -p$MARIADB_ADMIN_PASSWORD -h$MARIADB_SERVICE_HOST < mariadb-backup/backupfile (unzipped)"'
+                    - 'ls -rdt /mariadb-backup/backup-all-databases-* | head -n -5 | xargs rm -fr; mysqldump -uroot -p$MARIADB_ADMIN_PASSWORD -h$MARIADB_SERVICE_HOST -P$MARIADB_SERVICE_PORT --skip-lock-tables --quick --add-drop-database --routines --all-databases | gzip > /mariadb-backup/backup-all-databases-`date +%Y-%m-%d_%H%M%S`.sql.gz; echo "Backup finished"; echo "to restore the backup to the serviced host use: $ mysql -uroot -p$MARIADB_ADMIN_PASSWORD -h$MARIADB_SERVICE_HOST < mariadb-backup/backupfile (unzipped)"'
                   env:
                     - name: MARIADB_BACKUP_KEEP
                       value: ${MARIADB_BACKUP_KEEP}
@@ -58,3 +58,4 @@ objects:
                     - name: mariadb-backup
                       mountPath: /mariadb-backup
               restartPolicy: Never
+

@@ -19,6 +19,8 @@ parameters:
     description: 'MariaDB admin user''s password. Required.'
   - name: MARIADB_SERVICE_HOST
     description: 'MariaDB Service Name. Required.'
+  - name: MARIADB_BACKUP_DATABASE
+    description: 'MariaDB Database to backup. Required.'
   - name: MARIADB_SERVICE_PORT
     description: 'MariaDB Service PORT'
     value: '3306'
@@ -44,7 +46,7 @@ objects:
                   command:
                     - 'bash'
                     - '-c'
-                    - 'ls -rdt /mariadb-backup/backup-all-databases-* | head -n -5 | xargs rm -fr; mysqldump -uroot -p$MARIADB_ADMIN_PASSWORD -h$MARIADB_SERVICE_HOST -P$MARIADB_SERVICE_PORT --skip-lock-tables --quick --add-drop-database --routines --all-databases | gzip > /mariadb-backup/backup-all-databases-`date +%Y-%m-%d_%H%M%S`.sql.gz; echo "Backup finished"; echo "to restore the backup to the serviced host use: $ mysql -uroot -p$MARIADB_ADMIN_PASSWORD -h$MARIADB_SERVICE_HOST < mariadb-backup/backupfile (unzipped)"'
+                    - 'ls -rdt /mariadb-backup/backup-${MARIADB_BACKUP_DATABASE}-* | head -n -5 | xargs rm -fr; mysqldump -uroot -p$MARIADB_ADMIN_PASSWORD -h$MARIADB_SERVICE_HOST -P$MARIADB_SERVICE_PORT --skip-lock-tables --quick --add-drop-database --routines ${MARIADB_BACKUP_DATABASE} | gzip > /mariadb-backup/backup-${MARIADB_BACKUP_DATABASE}-`date +%Y-%m-%d_%H%M%S`.sql.gz; echo "Backup finished"; echo "to restore the backup to the serviced host use: $ mysql -uroot -p$MARIADB_ADMIN_PASSWORD -h$MARIADB_SERVICE_HOST < mariadb-backup/backupfile (unzipped)"'
                   env:
                     - name: MARIADB_BACKUP_KEEP
                       value: ${MARIADB_BACKUP_KEEP}
@@ -54,6 +56,8 @@ objects:
                       value: ${MARIADB_SERVICE_HOST}
                     - name: MARIADB_SERVICE_PORT
                       value: ${MARIADB_SERVICE_PORT}
+                    - name: MARIADB_BACKUP_DATABASE
+                      value: ${MARIADB_BACKUP_DATABASE}
                   volumeMounts:
                     - name: mariadb-backup
                       mountPath: /mariadb-backup

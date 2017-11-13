@@ -28,7 +28,7 @@ oc process --parameters -f mariadb-backup-template.yaml
 
 + MARIADB_ADMIN_PASSWORD
 + MARIADB_SERVICE_HOST
-
++ MARIADB_BACKUP_DATABASE
 
 You can also store the template in the OpenShift project using
 ```
@@ -45,9 +45,9 @@ oc get scheduledjobs
 ````
 
 To disable the backup, you can simply remove the scheduledjob:
-```
+````
 oc delete scheduledjob mariadb-backup
-```
+````
 
 To restore the backup you start a backup pod (e.g. in debug mode) connect to the pod and use:
 ````
@@ -55,3 +55,8 @@ oc rsh mariadb-backup-[xyz]-debug
 
 mysql -uroot -p$MARIADB_ADMIN_PASSWORD -h$MARIADB_SERVICE_HOST < mariadb-backup/backupfile (unzipped)
 ```` 
+
+
+oc-3.4 volume mariadb-backup --add --name "mariadb-backup" -t persistentVolumeClaim --claim-name "mariadb-backup-volume-claim" --claim-size=1Gi --mount-path=/opt/app-root/src/backup
+
+Wichtig das PV muss vom namen her so angelegt werden, wie es im Template beschrieben ist. Standardmässig ist das mariadb-backup

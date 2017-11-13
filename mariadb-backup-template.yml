@@ -45,8 +45,10 @@ objects:
                   image: 'registry.access.redhat.com/rhscl/mariadb-101-rhel7@sha256:06bbf195382e36a727f3488d8fe597cedf62ce1888104768b3e5eb106e683cd5'
                   command:
                     - 'bash'
+                    - '-eo'
+                    - 'pipefailed'
                     - '-c'
-                    - 'ls -rdt /mariadb-backup/backup-${MARIADB_BACKUP_DATABASE}-* | head -n -5 | xargs rm -fr; mysqldump -uroot -p$MARIADB_ADMIN_PASSWORD -h$MARIADB_SERVICE_HOST -P$MARIADB_SERVICE_PORT --skip-lock-tables --quick --add-drop-database --routines ${MARIADB_BACKUP_DATABASE} | gzip > /mariadb-backup/backup-${MARIADB_BACKUP_DATABASE}-`date +%Y-%m-%d_%H%M%S`.sql.gz; echo "Backup finished"; echo "to restore the backup to the serviced host use: $ mysql -uroot -p$MARIADB_ADMIN_PASSWORD -h$MARIADB_SERVICE_HOST < mariadb-backup/backupfile (unzipped)"'
+                    - 'trap "echo Backup failed; exit 0" ERR; time (ls -rdt /mariadb-backup/backup-${MARIADB_BACKUP_DATABASE}-* | head -n -5 | xargs rm -fr; mysqldump -uroot -p$MARIADB_ADMIN_PASSWORD -h$MARIADB_SERVICE_HOST -P$MARIADB_SERVICE_PORT --skip-lock-tables --quick --add-drop-database --routines ${MARIADB_BACKUP_DATABASE} | gzip > /mariadb-backup/backup-${MARIADB_BACKUP_DATABASE}-`date +%Y-%m-%d_%H%M%S`.sql.gz); echo "Backup successful"; echo "to restore the backup to the serviced host use: $ mysql -uroot -p$MARIADB_ADMIN_PASSWORD -h$MARIADB_SERVICE_HOST < mariadb-backup/backupfile (unzipped)"'
                   env:
                     - name: MARIADB_BACKUP_KEEP
                       value: ${MARIADB_BACKUP_KEEP}

@@ -12,15 +12,17 @@ parameters:
   - name: MARIADB_BACKUP_SCHEDULE
     description: 'Cron-like schedule expression. Default: Every hour at :55'
     value: '55 * * * *'
-  - name: MARIADB_BACKUP_VOLUME_CLAIM
-    description: 'Name of the volume claim to be used as storage'
-    value: 'mariadb-backup'
-  - name: MARIADB_ADMIN_PASSWORD
-    description: 'MariaDB admin user''s password. Required.'
+  - name: MARIADB_USER
+    description: 'MariaDB user (if empty root will be used)'
+    value: 'root'
+  - name: MARIADB_PASSWORD
+    description: 'Required: MariaDB user password (if MARIADB_USER not used please fill root-pwd).'
   - name: MARIADB_SERVICE_HOST
-    description: 'MariaDB Service Name. Required.'
+    description: 'Required: MariaDB Service Name.'
   - name: MARIADB_BACKUP_DATABASE
-    description: 'MariaDB Database to backup. Required.'
+    description: 'Required: MariaDB Database to backup.'
+  - name: MARIADB_BACKUP_VOLUME_CLAIM
+    description: 'Required: Name of the volume claim to be used as storage.'
   - name: MARIADB_SERVICE_PORT
     description: 'MariaDB Service PORT'
     value: '3306'
@@ -42,18 +44,20 @@ objects:
                     claimName: ${MARIADB_BACKUP_VOLUME_CLAIM}
               containers:
                 - name: mariadb-backup
-                  image: 'registry.access.redhat.com/rhscl/mariadb-101-rhel7@sha256:06bbf195382e36a727f3488d8fe597cedf62ce1888104768b3e5eb106e683cd5'
+                  image: 'mariadb:latest'
                   command:
                     - 'bash'
                     - '-eo'
-                    - 'pipefailed'
+                    - 'pipefail'
                     - '-c'
-                    - 'trap "echo Backup failed; exit 0" ERR; time (ls -rdt /mariadb-backup/backup-${MARIADB_BACKUP_DATABASE}-* | head -n -5 | xargs rm -fr; mysqldump -uroot -p$MARIADB_ADMIN_PASSWORD -h$MARIADB_SERVICE_HOST -P$MARIADB_SERVICE_PORT --skip-lock-tables --quick --add-drop-database --routines ${MARIADB_BACKUP_DATABASE} | gzip > /mariadb-backup/backup-${MARIADB_BACKUP_DATABASE}-`date +%Y-%m-%d_%H%M%S`.sql.gz); echo "Backup successful"; echo "to restore the backup to the serviced host use: $ mysql -uroot -p$MARIADB_ADMIN_PASSWORD -h$MARIADB_SERVICE_HOST < mariadb-backup/backupfile (unzipped)"'
+                    - 'trap "echo Backup failed; exit 0" ERR; time (find /mariadb-backup -name backup-${MARIADB_BACKUP_DATABASE}-* | head -n -${MARIADB_BACKUP_KEEP} | xargs rm -fr; mysqldump -u$MARIADB_USER -p$MARIADB_PASSWORD -h$MARIADB_SERVICE_HOST -P$MARIADB_SERVICE_PORT --skip-lock-tables --quick --add-drop-database --routines ${MARIADB_BACKUP_DATABASE} | gzip > /mariadb-backup/backup-${MARIADB_BACKUP_DATABASE}-`date +%Y-%m-%d_%H%M%S`.sql.gz); echo "Backup successful"; echo "to restore the backup to the serviced host use: $ mysql -u$MARIADB_USER -p$MARIADB_PASSWORD -h$MARIADB_SERVICE_HOST < mariadb-backup/backupfile (unzipped)"'
                   env:
                     - name: MARIADB_BACKUP_KEEP
                       value: ${MARIADB_BACKUP_KEEP}
-                    - name: MARIADB_ADMIN_PASSWORD
-                      value: ${MARIADB_ADMIN_PASSWORD}
+                    - name: MARIADB_USER
+                      value: ${MARIADB_USER}
+                    - name: MARIADB_PASSWORD
+                      value: ${MARIADB_PASSWORD}
                     - name: MARIADB_SERVICE_HOST
                       value: ${MARIADB_SERVICE_HOST}
                     - name: MARIADB_SERVICE_PORT

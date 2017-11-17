@@ -12,11 +12,6 @@ To set up the backup:
 + Log in using `oc login`
 + Switch to the right project using `oc project <yourproject>`
 
-To create the scheduledjob, use
-```
-oc process -f mariadb-backup-template.yaml MARIADB_ADMIN_PASSWORD=passw0rd <more parameters> | oc create -f -
-```
-
 To get a list of parameters, use
 
 ```
@@ -26,9 +21,15 @@ oc process --parameters -f mariadb-backup-template.yaml
 
 **The following parameters are mandatory:**
 
-+ MARIADB_ADMIN_PASSWORD
++ MARIADB_PASSWORD
 + MARIADB_SERVICE_HOST
 + MARIADB_BACKUP_DATABASE
++ MARIADB_BACKUP_VOLUME_CLAIM
+
+To create the scheduledjob, use
+```
+oc process -f mariadb-backup-template.yml MARIADB_USER=<user> MARIADB_PASSWORD=<password> MARIADB_SERVICE_HOST=<host> MARIADB_BACKUP_DATABASE=<database> MARIADB_BACKUP_VOLUME_CLAIM=<pv-claim> MARIADB_BACKUP_SCHEDULE="<cronjob-expression>" <more parameters> | oc create -f - 
+```
 
 You can also store the template in the OpenShift project using
 ```
@@ -36,8 +37,13 @@ oc create -f mariadb-backup-template.yaml
 ```
 After you did that, you can use
 ```
-oc process mariadb-backup-template MARIADB_ADMIN_PASSWORD=passw0rd <more parameters> | oc create -f -
+oc process mariadb-backup-template MARIADB_PASSWORD=<password> <more parameters> | oc create -f -
 ```
+
+Create a pv for the backup
+````
+oc volume mariadb-backup --add --name "mariadb-backup" -t persistentVolumeClaim --claim-name "backup-claim" --claim-size=1Gi
+````
 
 To check if the scheduled job is present:
 ````
@@ -53,10 +59,5 @@ To restore the backup you start a backup pod (e.g. in debug mode) connect to the
 ````
 oc rsh mariadb-backup-[xyz]-debug
 
-mysql -uroot -p$MARIADB_ADMIN_PASSWORD -h$MARIADB_SERVICE_HOST < mariadb-backup/backupfile (unzipped)
+mysql -u<db-user> -p<db-user-password> -h<host> < <path-to-backupfile>.sql (the backupfile has to be unzipped)
 ```` 
-
-
-oc-3.4 volume mariadb-backup --add --name "mariadb-backup" -t persistentVolumeClaim --claim-name "mariadb-backup-volume-claim" --claim-size=1Gi --mount-path=/opt/app-root/src/backup
-
-Wichtig das PV muss vom namen her so angelegt werden, wie es im Template beschrieben ist. Standardmässig ist das mariadb-backup

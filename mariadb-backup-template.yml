@@ -50,7 +50,7 @@ objects:
                     - '-eo'
                     - 'pipefail'
                     - '-c'
-                    - 'trap "echo Backup failed; exit 0" ERR; time (find /mariadb-backup -name backup-${MARIADB_BACKUP_DATABASE}-* | head -n -${MARIADB_BACKUP_KEEP} | xargs rm -fr; mysqldump -u$MARIADB_USER -p$MARIADB_PASSWORD -h$MARIADB_SERVICE_HOST -P$MARIADB_SERVICE_PORT --skip-lock-tables --quick --add-drop-database --routines ${MARIADB_BACKUP_DATABASE} | gzip > /mariadb-backup/backup-${MARIADB_BACKUP_DATABASE}-`date +%Y-%m-%d_%H%M%S`.sql.gz); echo "Backup successful"; echo "to restore the backup to the serviced host use: $ mysql -u$MARIADB_USER -p$MARIADB_PASSWORD -h$MARIADB_SERVICE_HOST < mariadb-backup/backupfile (unzipped)"'
+                    - 'trap "echo Backup failed; exit 0" ERR; FILENAME=backup-test-`date +%Y-%m-%d_%H%M%S`.sql.gz; time (find /mariadb-backup -name backup-${MARIADB_BACKUP_DATABASE}-* | head -n -${MARIADB_BACKUP_KEEP} | xargs rm -fr; mysqldump -u$MARIADB_USER -p$MARIADB_PASSWORD -h$MARIADB_SERVICE_HOST -P$MARIADB_SERVICE_PORT --skip-lock-tables --quick --add-drop-database --routines ${MARIADB_BACKUP_DATABASE} | gzip > /mariadb-backup/$FILENAME); echo "Backup successful"; du -h /mariadb-backup/$FILENAME; echo "to restore the backup to the serviced host use: $ mysql -u$MARIADB_USER -p$MARIADB_PASSWORD -h$MARIADB_SERVICE_HOST < mariadb-backup/backupfile (unzipped)"'
                   env:
                     - name: MARIADB_BACKUP_KEEP
                       value: ${MARIADB_BACKUP_KEEP}

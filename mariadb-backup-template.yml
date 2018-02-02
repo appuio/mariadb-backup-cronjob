@@ -58,14 +58,14 @@ objects:
                     - '-c'
                     - > 
                       trap "echo Backup failed; exit 0" ERR; 
-                      FILENAME=backup-test-`date +%Y-%m-%d_%H%M%S`.sql.gz; 
-                      time (find /mariadb-backup -name backup-${MARIADB_BACKUP_DATABASE}-* | head -n -${MARIADB_BACKUP_KEEP} | xargs rm -fr; 
+                      FILENAME=backup-${MARIADB_BACKUP_DATABASE}-`date +%Y-%m-%d_%H%M%S`.sql.gz;
+                      time (find /mariadb-backup -type f -name "backup-${MARIADB_BACKUP_DATABASE}-*"  -exec ls -1tr "{}" + | head -n -${MARIADB_BACKUP_KEEP} | xargs rm -fr; 
                       mysqldump -u$MARIADB_USER -p$MARIADB_PASSWORD -h$MARIADB_SERVICE_HOST -P$MARIADB_SERVICE_PORT --skip-lock-tables --quick --add-drop-database --routines ${MARIADB_BACKUP_DATABASE} | gzip > /mariadb-backup/$FILENAME); 
                       echo "Icinga Response:";
-                      curl -k -s -u $ICINGA_USERNAME:"$ICINGA_PASSWORD" -H 'Accept: application/json' -X POST 'https://monitori:5665/v1/actions/process-check-result?service=openshift-prod!check_passive-pitc-openproject-prod-db-backup' -d '{ "exit_status": 0, "plugin_output": "backup ok" }';
+                      curl -k -s -u $ICINGA_USERNAME:"$ICINGA_PASSWORD" -H 'Accept: application/json' -X POST 'https://monitori:5665/v1/actions/process-check-result?service=openshift-prod!check_passive-pitc-openproject-prod-db-backup_monitor.rz.puzzle.ch' -d '{ "exit_status": 0, "plugin_output": "backup ok" }';
                       echo "";
                       echo "Backup successful"; du -h /mariadb-backup/$FILENAME; 
-                      echo "to restore the backup to the serviced host use: $ mysql -u$MARIADB_USER -p$MARIADB_PASSWORD -h$MARIADB_SERVICE_HOST < mariadb-backup/backupfile (unzipped)"
+                      echo "to restore the backup to the serviced host use: $ mysql -u$MARIADB_USER -p$MARIADB_PASSWORD -h$MARIADB_SERVICE_HOST < /mariadb-backup/backupfile (unzipped)"
                   env:
                     - name: MARIADB_BACKUP_KEEP
                       value: ${MARIADB_BACKUP_KEEP}

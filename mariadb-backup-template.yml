@@ -28,10 +28,8 @@ parameters:
     value: '3306'
   - name: ICINGA_USERNAME
     description: 'Required: MariaDB Database to backup.'
-    value: 'openshift-passive'
   - name: ICINGA_PASSWORD
     description: 'Required: MariaDB Database to backup.'
-    value: '9]AO{vjg[,lZ[bcH'
 objects:
   - apiVersion: batch/v2alpha1
     kind: ScheduledJob

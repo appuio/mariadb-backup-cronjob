@@ -27,9 +27,9 @@ parameters:
     description: 'MariaDB Service PORT'
     value: '3306'
   - name: ICINGA_USERNAME
-    description: 'Required: MariaDB Database to backup.'
+    description: 'Required: User for Icinga Login.'
   - name: ICINGA_PASSWORD
-    description: 'Required: MariaDB Database to backup.'
+    description: 'Required: Password for Icinga Login.'
 objects:
   - apiVersion: batch/v2alpha1
     kind: ScheduledJob

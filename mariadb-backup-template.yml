@@ -3,51 +3,57 @@ kind: Template
 metadata:
   name: mariadb-backup-template
   annotations:
-    description: 'Template for MariaDB container backup job'
+    description: 'Template for a DB container backup job'
     tags: 'database'
 parameters:
-  - name: MARIADB_BACKUP_KEEP
+  - name: DATABASE_BACKUP_KEEP
     description: 'Number of backups to keep'
     value: '5'
-  - name: MARIADB_BACKUP_SCHEDULE
-    description: 'Cron-like schedule expression. Default: Every hour at :55'
+  - name: DATABASE_BACKUP_SCHEDULE
+    description: 'Cron-like schedule expression'
     value: '55 * * * *'
-  - name: MARIADB_USER
-    description: 'MariaDB user (if empty root will be used)'
-    value: 'root'
-  - name: MARIADB_PASSWORD
-    description: 'Required: MariaDB user password (if MARIADB_USER not used please fill root-pwd).'
-  - name: MARIADB_SERVICE_HOST
-    description: 'Required: MariaDB Service Name.'
-  - name: MARIADB_BACKUP_DATABASE
-    description: 'Required: MariaDB Database to backup.'
-  - name: MARIADB_BACKUP_VOLUME_CLAIM
-    description: 'Required: Name of the volume claim to be used as storage.'
-  - name: MARIADB_SERVICE_PORT
-    description: 'MariaDB Service PORT'
-    value: '3306'
+  - name: DATABASE_USER
+    description: 'database user'
+    required: true
+  - name: DATABASE_PASSWORD
+    description: 'database user password'
+    required: true
+  - name: DATABASE_HOST
+    description: 'Hostname of DB server'
+    required: true
+  - name: DATABASE_PORT
+    description: 'DB Port'
+    required: true
+  - name: DATABASE_NAME
+    description: 'Database to backup'
+    required: true
+  - name: DATABASE_BACKUP_VOLUME_CLAIM
+    description: 'Name of the volume claim to be used as storage'
+    required: true
   - name: ICINGA_USERNAME
-    description: 'Required: User for Icinga Login.'
+    description: 'User for Icinga Login'
   - name: ICINGA_PASSWORD
-    description: 'Required: Password for Icinga Login.'
+    description: 'Password for Icinga Login'
+  - name: ICINGA_SERVICE_URL
+    description: 'Service url to be notified in Incinga'
 objects:
   - apiVersion: batch/v2alpha1
     kind: ScheduledJob
     metadata:
       name: mariadb-backup
     spec:
-      schedule: ${MARIADB_BACKUP_SCHEDULE}
+      schedule: ${DATABASE_BACKUP_SCHEDULE}
       concurrencyPolicy: Forbid
       jobTemplate:
         spec:
           template:
             spec:
               volumes:
-                - name: mariadb-backup
+                - name: database-backup
                   persistentVolumeClaim:
-                    claimName: ${MARIADB_BACKUP_VOLUME_CLAIM}
+                    claimName: ${DATABASE_BACKUP_VOLUME_CLAIM}
               containers:
-                - name: mariadb-backup
+                - name: database-backup
                   image: 'registry.access.redhat.com/rhscl/mariadb-101-rhel7:10.1'
                   command:
                     - 'bash'
@@ -56,33 +62,36 @@ objects:
                     - '-c'
                     - > 
                       trap "echo Backup failed; exit 0" ERR; 
-                      FILENAME=backup-${MARIADB_BACKUP_DATABASE}-`date +%Y-%m-%d_%H%M%S`.sql.gz;
-                      time (find /mariadb-backup -type f -name "backup-${MARIADB_BACKUP_DATABASE}-*"  -exec ls -1tr "{}" + | head -n -${MARIADB_BACKUP_KEEP} | xargs rm -fr; 
-                      mysqldump -u$MARIADB_USER -p$MARIADB_PASSWORD -h$MARIADB_SERVICE_HOST -P$MARIADB_SERVICE_PORT --skip-lock-tables --quick --add-drop-database --routines ${MARIADB_BACKUP_DATABASE} | gzip > /mariadb-backup/$FILENAME); 
+                      FILENAME=backup-${DATABASE_NAME}-`date +%Y-%m-%d_%H%M%S`.sql.gz;
+                      time (find /database-backup -type f -name "backup-${DATABASE_NAME}-*"  -exec ls -1tr "{}" + | head -n -${DATABASE_BACKUP_KEEP} | xargs rm -fr; 
+                      mysqldump -u$DATABASE_USER -p$DATABASE_PASSWORD -h$DATABASE_HOST -P$DATABASE_PORT --skip-lock-tables --quick --add-drop-database --routines ${DATABASE_NAME} | gzip > /database-backup/$FILENAME); 
                       echo "Icinga Response:";
-                      curl -k -s -u $ICINGA_USERNAME:"$ICINGA_PASSWORD" -H 'Accept: application/json' -X POST 'https://monitori:5665/v1/actions/process-check-result?service=openshift-prod!check_passive-pitc-openproject-prod-db-backup_monitor.rz.puzzle.ch' -d '{ "exit_status": 0, "plugin_output": "backup ok" }';
+                      curl -k -s -u $ICINGA_USERNAME:"$ICINGA_PASSWORD" -H 'Accept: application/json' -X POST "$ICINGA_SERVICE_URL" -d '{ "exit_status": 0, "plugin_output": "backup ok" }';
                       echo "";
-                      echo "Backup successful"; du -h /mariadb-backup/$FILENAME; 
-                      echo "to restore the backup to the serviced host use: $ mysql -u$MARIADB_USER -p$MARIADB_PASSWORD -h$MARIADB_SERVICE_HOST < /mariadb-backup/backupfile (unzipped)"
+                      echo "Backup successful"; du -h /database-backup/$FILENAME; 
+                      echo "to restore the backup to the serviced host use: $ mysql -u$DATABASE_USER -p$DATABASE_PASSWORD -h$DATABASE_HOST < /database-backup/<backupfile> (unpacked)"
                   env:
-                    - name: MARIADB_BACKUP_KEEP
-                      value: ${MARIADB_BACKUP_KEEP}
-                    - name: MARIADB_USER
-                      value: ${MARIADB_USER}
-                    - name: MARIADB_PASSWORD
-                      value: ${MARIADB_PASSWORD}
-                    - name: MARIADB_SERVICE_HOST
-                      value: ${MARIADB_SERVICE_HOST}
-                    - name: MARIADB_SERVICE_PORT
-                      value: ${MARIADB_SERVICE_PORT}
-                    - name: MARIADB_BACKUP_DATABASE
-                      value: ${MARIADB_BACKUP_DATABASE}
+                    - name: DATABASE_BACKUP_KEEP
+                      value: ${DATABASE_BACKUP_KEEP}
+                    - name: DATABASE_USER
+                      value: ${DATABASE_USER}
+                    - name: DATABASE_PASSWORD
+                      value: ${DATABASE_PASSWORD}
+                    - name: DATABASE_HOST
+                      value: ${DATABASE_HOST}
+                    - name: DATABASE_PORT
+                      value: ${DATABASE_PORT}
+                    - name: DATABASE_NAME
+                      value: ${DATABASE_NAME}
                     - name: ICINGA_USERNAME
                       value: ${ICINGA_USERNAME}
                     - name: ICINGA_PASSWORD
                       value: ${ICINGA_PASSWORD}
+                    - name: ICINGA_SERVICE_URL
+                      value: ${ICINGA_SERVICE_URL}
+                    - name: TZ
+                      value: Europe/Zurich
                   volumeMounts:
-                    - name: mariadb-backup
-                      mountPath: /mariadb-backup
+                    - name: database-backup
+                      mountPath: /database-backup
               restartPolicy: Never
-

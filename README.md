@@ -4,7 +4,7 @@
 
 The maria DB backup uses the `cronjob` functionality of OpenShift to start a pod in regular intervals. The pod dumps the database to a persistent volume and exits.
 
-This tool uses an existing container (RedHat Maria DB container) and overrides its command. There is no need to build a container.
+This tool uses an existing RedHat Maria DB container and overrides its command. There is no need to build a container.
 
 The project contains two templates:
 
@@ -41,7 +41,7 @@ oc process --parameters -f mariadb-backup-template.yaml
 * DATABASE_NAME
 * DATABASE_BACKUP_VOLUME_CLAIM
 
-### Create the cronjob Job
+### Create the cronjob
 
 ```bash
 oc process -f mariadb-backup-template-with-icinga.yaml DATABASE_USER=<dbuser> DATABASE_PASSWORD=<dbpassword> DATABASE_HOST=<dbhost> DATABASE_PORT=<dbport> DATABASE_NAME=<dbname> DATABASE_BACKUP_VOLUME_CLAIM=<pvc-claim-name> ICINGA_USERNAME=<icinga-user> ICINGA_PASSWORD=<icinga-password> ICINGA_SERVICE_URL=<icinga-service-url> | oc create -f -

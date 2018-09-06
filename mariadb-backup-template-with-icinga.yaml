@@ -38,7 +38,7 @@ parameters:
     description: 'Service url to be notified in Incinga'
 objects:
   - apiVersion: batch/v2alpha1
-    kind: ScheduledJob
+    kind: CronJob
     metadata:
       name: mariadb-backup
     spec:

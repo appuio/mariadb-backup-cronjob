@@ -20,6 +20,7 @@ More about the monitoring can be found int the section [Monitoring](#Monitoring)
 
 * Log in using `oc login`
 * Switch to the right project using `oc project <yourproject>`
+* Have the database variables saved as secrets
 
 ### Create a pv for the backup
 
@@ -34,24 +35,29 @@ oc process --parameters -f mariadb-backup-template.yaml
 
 **The following parameters are mandatory:**
 
-* DATABASE_USER
-* DATABASE_PASSWORD
 * DATABASE_HOST
 * DATABASE_PORT
-* DATABASE_NAME
 * DATABASE_BACKUP_VOLUME_CLAIM
+
+**The following parameters can be overwritten if needed:**
+Documentation: https://github.com/appuio/techlab/blob/lab-3.9/labs/08_database.md#passwort-und-username-als-plaintext
+
+* DATABASE_SECRET_NAME
+* DATABASE_USER_KEY
+* DATABASE_PASSWORD_KEY
+* DATABASE_NAME_KEY
 
 ### Create the cronjob
 
 ```bash
-oc process -f mariadb-backup-template-with-icinga.yaml DATABASE_USER=<dbuser> DATABASE_PASSWORD=<dbpassword> DATABASE_HOST=<dbhost> DATABASE_PORT=<dbport> DATABASE_NAME=<dbname> DATABASE_BACKUP_VOLUME_CLAIM=<pvc-claim-name> ICINGA_USERNAME=<icinga-user> ICINGA_PASSWORD=<icinga-password> ICINGA_SERVICE_URL=<icinga-service-url> | oc create -f -
+oc process -f mariadb-backup-template-with-icinga.yaml DATABASE_HOST=<dbhost> DATABASE_PORT=<dbport> DATABASE_BACKUP_VOLUME_CLAIM=<pvc-claim-name> ICINGA_USERNAME=<icinga-user> ICINGA_PASSWORD=<icinga-password> ICINGA_SERVICE_URL=<icinga-service-url> | oc create -f -
 ```
 
 You can also store the template in the project using and `oc process` afterwards
 
 ```bash
 oc create -f mariadb-backup-template.yaml
-oc process mariadb-backup-template DATABASE_USER=<dbuser> DATABASE_PASSWORD=<dbpassword> ... | oc create -f -
+oc process mariadb-backup-template DATABASE_HOST=<dbhost> ... | oc create -f -
 ```
 
 To check if the cronjob is present:

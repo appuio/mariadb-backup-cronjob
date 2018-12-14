@@ -11,13 +11,16 @@ parameters:
     value: '5'
   - name: DATABASE_BACKUP_SCHEDULE
     description: 'Cron-like schedule expression'
-    value: '55 * * * *'
-  - name: DATABASE_USER
-    description: 'database user'
-    required: true
-  - name: DATABASE_PASSWORD
-    description: 'database user password'
-    required: true
+    value: '0 */12 * * *'
+  - name: DATABASE_SECRET_NAME
+    description: 'Secret key name'
+    value: mysql
+  - name: DATABASE_USER_KEY
+    description: 'Secret key name for database user'
+    value: database-user
+  - name: DATABASE_PASSWORD_KEY
+    description: 'Secret key name for database password'
+    value: database-password
   - name: DATABASE_HOST
     description: 'Hostname of DB server'
     required: true
@@ -74,15 +77,24 @@ objects:
                     - name: DATABASE_BACKUP_KEEP
                       value: ${DATABASE_BACKUP_KEEP}
                     - name: DATABASE_USER
-                      value: ${DATABASE_USER}
+                      valueFrom:
+                        secretKeyRef:
+                          key: ${DATABASE_USER_KEY}
+                          name: ${DATABASE_SECRET_NAME}
                     - name: DATABASE_PASSWORD
-                      value: ${DATABASE_PASSWORD}
+                      valueFrom:
+                        secretKeyRef:
+                          key: ${DATABASE_PASSWORD_KEY}
+                          name: ${DATABASE_SECRET_NAME}
                     - name: DATABASE_HOST
                       value: ${DATABASE_HOST}
                     - name: DATABASE_PORT
                       value: ${DATABASE_PORT}
                     - name: DATABASE_NAME
-                      value: ${DATABASE_NAME}
+                      valueFrom:
+                        secretKeyRef:
+                          key: ${DATABASE_NAME_KEY}
+                          name: ${DATABASE_SECRET_NAME}
                     - name: ICINGA_USERNAME
                       value: ${ICINGA_USERNAME}
                     - name: ICINGA_PASSWORD

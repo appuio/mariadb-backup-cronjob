@@ -57,7 +57,7 @@ You can also store the template in the project using and `oc process` afterwards
 
 ```bash
 oc create -f mariadb-backup-template.yaml
-oc process mariadb-backup-template DATABASE_USER=<dbuser> DATABASE_PASSWORD=<dbpassword> ... | oc create -f -
+oc process mariadb-backup-template DATABASE_HOST=<dbhost> ... | oc create -f -
 ```
 
 To check if the cronjob is present:

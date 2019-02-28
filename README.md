@@ -4,12 +4,14 @@
 
 The maria DB backup uses the `cronjob` functionality of OpenShift to start a pod in regular intervals. The pod dumps the database to a persistent volume and exits.
 
-This tool uses an existing RedHat Maria DB container and overrides its command. There is no need to build a container.
+It uses an existing RedHat Maria DB container and overrides its command. There is no need to build a container.
 
-The project contains two templates:
+The project contains multiple templates:
 
 * mariadb-backup-template.yaml
+* mariadb-backup-template-with-secret.yaml (this example provides two keys in the secret: database-user, database-password)
 * mariadb-backup-template-with-icinga.yaml
+* mariadb-backup-template-with-icinga-and-secret.yaml (this example provides two keys in the secret: database-user, database-password)
 
 As the names are stating the second template has also an implementation with a monitoring support from icinga.
 More about the monitoring can be found int the section [Monitoring](#Monitoring)
@@ -18,8 +20,10 @@ More about the monitoring can be found int the section [Monitoring](#Monitoring)
 
 ### Prequisits
 
-* Log in using `oc login`
-* Switch to the right project using `oc project <yourproject>`
+* Log in using  
+`oc login`
+* Switch to the right project using  
+`oc project <yourproject>`
 
 ### Create a pv for the backup
 
@@ -29,22 +33,58 @@ I would recommend to use the GUI for this part.
 
 ```bash
 oc process --parameters -f mariadb-backup-template.yaml
+```
 
+#### Using Secrets for DB
+
+Instead of passing the DB Credentials in plaintext to the cronjob it's possible to use the appropriate secrets.
+
+```bash
+...
+      env:
+        - name: DATABASE_USER
+          valueFrom:
+            secretKeyRef:
+              key: [NAME_OF_THE_KEY_USED_IN_THE_SECRET e.g. user]
+              name: [NAME_OF_THE_SECRET_USED_IN_PROJECT]
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: [NAME_OF_THE_KEY_USED_IN_THE_SECRET e.g. password]
+              name: [NAME_OF_THE_SECRET_USED_IN_PROJECT]
+...
 ```
 
 **The following parameters are mandatory:**
 
-* DATABASE_USER
-* DATABASE_PASSWORD
+* *DATABASE_USER* (see Note)
+* *DATABASE_PASSWORD* (see Note)
+* *DATABASE_SECRET* (see Note)
 * DATABASE_HOST
 * DATABASE_PORT
 * DATABASE_NAME
 * DATABASE_BACKUP_VOLUME_CLAIM
 
-### Create the cronjob
+**Note:** Either provide DATABASE_USER AND DATABASE_PASSWORD or DATABASE_SECRET
+
+### Create the cronjob (with icinga support)
 
 ```bash
 oc process -f mariadb-backup-template-with-icinga.yaml DATABASE_USER=<dbuser> DATABASE_PASSWORD=<dbpassword> DATABASE_HOST=<dbhost> DATABASE_PORT=<dbport> DATABASE_NAME=<dbname> DATABASE_BACKUP_VOLUME_CLAIM=<pvc-claim-name> ICINGA_USERNAME=<icinga-user> ICINGA_PASSWORD=<icinga-password> ICINGA_SERVICE_URL=<icinga-service-url> | oc create -f -
+```
+
+### Create the cronjob (without icinga support)
+
+```bash
+oc process -f mariadb-backup-template.yaml DATABASE_USER=<dbuser> DATABASE_PASSWORD=<dbpassword> DATABASE_HOST=<dbhost> DATABASE_PORT=<dbport> DATABASE_NAME=<dbname> DATABASE_BACKUP_VOLUME_CLAIM=<pvc-claim-name> | oc create -f -
+```
+
+### Create the cronjob (with credentials & without icinga suppport)
+
+The secret used in this template provided database name, database user and database password.
+
+```bash
+oc process -f mariadb-backup-template-with-secret.yaml DATABASE_SECRET=<secretname> DATABASE_HOST=<dbhost> DATABASE_PORT=<dbport> DATABASE_NAME=<dbname> DATABASE_BACKUP_VOLUME_CLAIM=<pvc-claim-name> | oc create -f -
 ```
 
 You can also store the template in the project using and `oc process` afterwards
